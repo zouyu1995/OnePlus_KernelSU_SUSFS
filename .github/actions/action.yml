@@ -891,8 +891,17 @@ runs:
           fi
         fi
         
-        patch -p1 --forward < "$SUSFS_FOLDER/kernel_patches/50_add_susfs_in_${{ env.SUSFS_KERNEL_BRANCH }}.patch"
-        
+        # 应用主 SUSFS 补丁；允许个别 hunk 失败(生成 .rej)，随后补齐关键 include
+        patch -p1 --forward --fuzz=3 < "$SUSFS_FOLDER/kernel_patches/50_add_susfs_in_${{ env.SUSFS_KERNEL_BRANCH }}.patch" || true
+        # inject susfs_def.h include if missing (Hunk#1 commonly fails)
+        if ! grep -q "susfs_def.h" fs/proc/base.c; then
+          echo "Manually injecting susfs_def.h include into fs/proc/base.c"
+          perl -0pi -e 's/\A/#include <linux\/susfs_def.h>\n/' fs/proc/base.c
+          if ! grep -q "susfs_def.h" fs/proc/base.c; then
+            printf '%s\n' '#include <linux/susfs_def.h>' | cat - fs/proc/base.c > /tmp/base.c.new && mv /tmp/base.c.new fs/proc/base.c
+          fi
+        fi
+
         # Revert Fake kernel patch
         if [ "$fake_patched" = 1 ]; then
           if [ "${{ env.ANDROID_VER }}" = "android15" ] && [ "${{ env.KERNEL_VER }}" = "6.6" ]; then
