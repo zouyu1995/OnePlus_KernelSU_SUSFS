@@ -143,6 +143,8 @@ jobs:
           esac
           
           filtered=$(jq -c "$jq_filter" matrix.json)
+          # >>> only OP12 <<<
+          filtered=$(jq -c 'map(select(.model == "OP12"))' <<<"$filtered")
           count=$(jq 'length' <<<"$filtered")
           
           if [ "$count" -eq 0 ]; then
