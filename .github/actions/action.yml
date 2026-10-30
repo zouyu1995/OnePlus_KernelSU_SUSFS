@@ -1513,6 +1513,38 @@ runs:
         echo "   - Build time: ${BUILD_TIME}s"
         echo "::endgroup::"
 
+    - name: Patch KPM (KernelPatch) into Image
+      id: patch_kpm
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo "::group::Patch KPM into kernel Image"
+        IMG=""
+        if [ -f "$KERNEL_PLATFORM_FOLDER/out/$OP_ANDROID_VERSION-$OP_KERNEL_VERSION/dist/Image" ]; then
+          IMG="$KERNEL_PLATFORM_FOLDER/out/$OP_ANDROID_VERSION-$OP_KERNEL_VERSION/dist/Image"
+        elif [ -f "$COMMON_KERNEL_FOLDER/out/arch/arm64/boot/Image" ]; then
+          IMG="$COMMON_KERNEL_FOLDER/out/arch/arm64/boot/Image"
+        elif [ -f "$KERNEL_PLATFORM_FOLDER/bazel-bin/common/kernel_aarch64/Image" ]; then
+          IMG="$KERNEL_PLATFORM_FOLDER/bazel-bin/common/kernel_aarch64/Image"
+        fi
+        test -f "$IMG" || { echo "::error::Image not found for KPM patch"; exit 1; }
+        echo "Patching: $IMG"
+        WORK=$(mktemp -d)
+        cd "$WORK"
+        curl -L --fail --retry 3 -o patch_linux https://github.com/ShirkNeko/SukiSU_KernelPatch_patch/releases/download/0.11-beta/patch_linux
+        chmod +x patch_linux
+        cp "$IMG" ./Image
+        ./patch_linux
+        if [ -f oImage ]; then
+          echo "KPM patch OK, replacing Image"
+          mv -f oImage "$IMG"
+          ls -la "$IMG"
+        else
+          echo "::warning::patch_linux produced no oImage; leaving kernel Image unpatched"
+        fi
+        cd -; rm -rf "$WORK"
+        echo "::endgroup::"
+
     - name: Create Kernel ZIP
       id: create_zip
       shell: bash
