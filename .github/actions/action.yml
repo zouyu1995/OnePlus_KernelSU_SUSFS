@@ -832,7 +832,7 @@ runs:
               patch -p1 --forward < "$SUSFS_FOLDER/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch"
             fi
             ;;
-          "v2.0.0")
+          "v2.0.0"|"v2.1.0"|"v2.2.0"|"v2.3.0"|"v2.4.0")
             if [ "${{ inputs.ksu_type }}" = "KSUN" ]; then
               cd ./KernelSU-Next
             else
