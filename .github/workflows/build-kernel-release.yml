@@ -67,7 +67,7 @@ on:
 
 jobs:
   set-op-model:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
       device_count: ${{ steps.set-matrix.outputs.count }}
@@ -144,7 +144,7 @@ jobs:
           
           filtered=$(jq -c "$jq_filter" matrix.json)
           # >>> only OP12 <<<
-          filtered=$(jq -c 'map(select(.model == "OP12"))' <<<"$filtered")
+          filtered=$(jq -c 'map(select(.model == "OP12" and .os_version == "OOS16"))' <<<"$filtered")
           count=$(jq 'length' <<<"$filtered")
           
           if [ "$count" -eq 0 ]; then
@@ -256,7 +256,7 @@ jobs:
   build:
     name: build (${{ matrix.model }}, ${{ matrix.soc }}, ${{ matrix.branch }}, ${{ matrix.manifest }}, ${{ matrix.android_version }}, ${{ matrix.kernel_version }}, ${{ matrix.os_version }}, ${{ matrix.ksu_type }})
     needs: set-op-model
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.set-op-model.outputs.matrix) }}
@@ -351,7 +351,7 @@ jobs:
           sudo apt-get -o Acquire::Retries=3 update -qq
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             git curl ca-certificates build-essential clang lld flex bison \
-            libelf-dev libssl-dev libncurses-dev zlib1g-dev liblz4-tool \
+            libelf-dev libssl-dev libncurses-dev zlib1g-dev lz4 liblz4-dev \
             libxml2-utils rsync unzip dwarves file python3 ccache jq bc dos2unix kmod libdw-dev elfutils
           sudo apt-get clean
           echo "✅ Dependencies installed"
@@ -531,7 +531,7 @@ jobs:
 
   trigger-release:
     needs: [build]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     if: ${{ inputs.make_release }}
     env:
       REPO_OWNER: ${{ github.repository_owner }}
